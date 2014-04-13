@@ -1,15 +1,16 @@
 package fractal.canvas;
 
-import javax.media.opengl.GL2;
-import javax.media.opengl.GLAutoDrawable;
-import javax.media.opengl.GLEventListener;
-import javax.media.opengl.GLException;
+import fractal.exception.glsl.GLSLException;
+
+import javax.media.opengl.*;
 import javax.media.opengl.awt.GLCanvas;
 import java.awt.*;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 
 import static javax.media.opengl.GL.*;
+import static javax.media.opengl.GL2ES2.GL_COMPILE_STATUS;
+import static javax.media.opengl.GL2ES2.GL_VERTEX_SHADER;
 import static javax.media.opengl.fixedfunc.GLMatrixFunc.GL_PROJECTION;
 
 public class FractalCanvas extends GLCanvas implements GLEventListener {
@@ -45,6 +46,8 @@ public class FractalCanvas extends GLCanvas implements GLEventListener {
         gl.glBindBuffer(GL_ARRAY_BUFFER, bufferId);
         final FloatBuffer floatBuffer = getFloatBuffer();
         gl.glBufferData(GL_ARRAY_BUFFER, points.length, floatBuffer, GL_STATIC_DRAW);
+
+        createShader(gl);
 
         gl.glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         gl.glMatrixMode(GL_PROJECTION);
@@ -89,8 +92,26 @@ public class FractalCanvas extends GLCanvas implements GLEventListener {
         return bufferindex[0];
     }
 
+    private int createShader(GL2 gl) {
+        final int shaderIndex = gl.glCreateShader(GL_VERTEX_SHADER);
+        gl.glShaderSource(shaderIndex, 1, null, null);
+        gl.glCompileShader(shaderIndex);
+
+        final int[] compileStatus = new int[1];
+        gl.glGetShaderiv(shaderIndex, GL_COMPILE_STATUS, compileStatus, 0);
+        if(compileStatus[0] != GL_TRUE) {
+            final int msgSize = 512;
+            final ByteBuffer msgBuffer = ByteBuffer.wrap(new byte[msgSize]);
+            gl.glGetShaderInfoLog(shaderIndex, msgSize, null, msgBuffer);
+
+            throw new GLSLException(msgBuffer.toString());
+        }
+
+        return shaderIndex;
+    }
+
     private FloatBuffer getFloatBuffer() {
-        final FloatBuffer floatBuffer = ByteBuffer.allocateDirect(points.length).asFloatBuffer();
+        final FloatBuffer floatBuffer = ByteBuffer.allocateDirect(points.length * Float.SIZE).asFloatBuffer();
         floatBuffer.put(points);
         floatBuffer.rewind();
 
