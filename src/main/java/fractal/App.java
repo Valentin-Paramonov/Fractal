@@ -69,7 +69,7 @@ public class App extends Frame implements WindowListener {
             @Override
             public void run() {
                 final App app = new App();
-                app.start();
+//                app.start();
             }
         };
 
